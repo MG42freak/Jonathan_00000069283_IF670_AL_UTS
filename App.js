@@ -7,6 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import ProfilScreen from './Profil';
 import TransaksiScreen from './Transaksi';
+import KonfirmasiScreen from './Konfirmasi';
 
 // Prevent the splash screen from auto-hiding
 SplashScreen.preventAutoHideAsync();
@@ -118,6 +119,11 @@ export default function App() {
         <Tab.Screen 
           name="Transaksi" 
           component={TransaksiScreen} 
+          options={{ tabBarButton: () => null }}  // Hide from tab bar
+        />
+        <Tab.Screen 
+          name="Konfirmasi" 
+          component={KonfirmasiScreen} 
           options={{ tabBarButton: () => null }}  // Hide from tab bar
         />
       </Tab.Navigator>
