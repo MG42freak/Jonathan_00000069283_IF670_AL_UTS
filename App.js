@@ -4,10 +4,10 @@ import { NavigationContainer } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import * as SplashScreen from 'expo-splash-screen';
 
-import ProfilScreen from './Profile';  // Import Profile screen
-import TransaksiScreen from './Transaksi';  // Import Transaksi screen
-import BerandaScreen from './Beranda';  // Assuming this is separated as well
-import HistoriScreen from './Histori';  // Assuming this is separated as well
+import ProfilScreen from './Profile';
+import TransaksiScreen from './Transaksi';
+import BerandaScreen from './Beranda';
+import HistoriScreen from './Histori';
 
 SplashScreen.preventAutoHideAsync();
 const Tab = createBottomTabNavigator();
