@@ -1,13 +1,13 @@
 {
   "expo": {
     "name": "Jonathan_00000069283_IF670_AL_UTS",
-    "slug": "Jonathan_00000069283_IF670_AL_UTS",
+    "slug": "jonathan00000069283if670aluts",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "splash": {
-      "image": "./assets/splash.png",
+      "image": "./assets/umn.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
@@ -22,6 +22,12 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "aefa35af-8eb1-4e7a-bd58-189780fe03b1"
+      }
+    },
+    "owner": "mg42freak"
   }
 }
