@@ -1,27 +1,26 @@
 import React, { useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import * as SplashScreen from 'expo-splash-screen';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { NavigationContainer } from '@react-navigation/native';
+import { createStackNavigator } from '@react-navigation/stack';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
-
+import { TransactionProvider } from './TransactionContext';
 import ProfilScreen from './Profil';
 import TransaksiScreen from './Transaksi';
 import KonfirmasiScreen from './Konfirmasi';
+import HistoryScreen from './History';
+import TransactionDetail from './TransactionDetail';
 
-// Prevent the splash screen from auto-hiding
 SplashScreen.preventAutoHideAsync();
 const Tab = createBottomTabNavigator();
+const Stack = createStackNavigator();
 
-// Home Screen (Beranda)
 function BerandaScreen({ navigation }) {
   return (
     <View style={styles.container}>
       <Text>Welcome, User!</Text>
-
-      {/* Button container with flexDirection row to arrange buttons side by side */}
       <View style={styles.buttonContainer}>
-        {/* Pulsa Button */}
         <View style={styles.iconButton}>
           <TouchableOpacity
             style={styles.roundButton}
@@ -32,7 +31,6 @@ function BerandaScreen({ navigation }) {
           <Text style={styles.buttonLabel}>Pulsa</Text>
         </View>
 
-        {/* BPJS Button */}
         <View style={styles.iconButton}>
           <TouchableOpacity
             style={styles.roundButton}
@@ -43,7 +41,6 @@ function BerandaScreen({ navigation }) {
           <Text style={styles.buttonLabel}>BPJS</Text>
         </View>
 
-        {/* Token Listrik Button */}
         <View style={styles.iconButton}>
           <TouchableOpacity
             style={styles.roundButton}
@@ -58,12 +55,43 @@ function BerandaScreen({ navigation }) {
   );
 }
 
-// History Screen (Histori)
-function HistoriScreen() {
+function TabNavigator() {
   return (
-    <View style={styles.container}>
-      <Text>Histori Page</Text>
-    </View>
+    <Tab.Navigator
+      initialRouteName="Beranda"
+      screenOptions={({ route }) => ({
+        tabBarIcon: ({ color, size }) => {
+          let iconName;
+
+          if (route.name === 'Beranda') {
+            iconName = 'home';
+          } else if (route.name === 'History') {
+            iconName = 'list-outline';
+          } else if (route.name === 'Profile') {
+            iconName = 'person';
+          }
+
+          return <Ionicons name={iconName} size={size} color={color} />;
+        },
+        tabBarActiveTintColor: 'blue',
+        tabBarInactiveTintColor: 'gray',
+      })}
+    >
+      <Tab.Screen
+        name="Beranda"
+        component={BerandaScreen}
+        options={{ headerTitle: 'Home' }} />
+      <Tab.Screen
+        name="History"
+        component={HistoryScreen}
+        options={{ headerTitle: 'Transaction History' }}
+      />
+      <Tab.Screen
+        name="Profile"
+        component={ProfilScreen}
+        options={{ headerTitle: 'User Profile' }}
+      />
+    </Tab.Navigator>
   );
 }
 
@@ -71,12 +99,10 @@ export default function App() {
   useEffect(() => {
     const loadResourcesAndDataAsync = async () => {
       try {
-        // Simulate loading time
         await new Promise(resolve => setTimeout(resolve, 2000));
       } catch (e) {
         console.warn(e);
       } finally {
-        // Hide the splash screen after loading
         await SplashScreen.hideAsync();
       }
     };
@@ -85,49 +111,29 @@ export default function App() {
   }, []);
 
   return (
-    <NavigationContainer>
-      <Tab.Navigator
-        initialRouteName="Beranda"
-        screenOptions={({ route, navigation }) => ({
-          headerLeft: route.name !== 'Beranda' ? () => (
-            <TouchableOpacity onPress={() => navigation.goBack()}>
-              <Ionicons name="arrow-back" size={24} color="black" style={{ marginLeft: 15 }} />
-            </TouchableOpacity>
-          ) : null,
-          tabBarIcon: ({ color, size }) => {
-            let iconName;
-
-            if (route.name === 'Beranda') {
-              iconName = 'home';
-            } else if (route.name === 'History') {
-              iconName = 'list-outline';
-            } else if (route.name === 'Profile') {
-              iconName = 'person';
-            }
-
-            return <Ionicons name={iconName} size={size} color={color} />;
-          },
-          tabBarActiveTintColor: 'blue',
-          tabBarInactiveTintColor: 'gray',
-          tabBarStyle: route.name !== 'Beranda' ? { display: 'none' } : {},
-          headerShown: true,
-        })}
-      >
-        <Tab.Screen name="Beranda" component={BerandaScreen} />
-        <Tab.Screen name="History" component={HistoriScreen} />
-        <Tab.Screen name="Profile" component={ProfilScreen} />
-        <Tab.Screen 
-          name="Transaksi" 
-          component={TransaksiScreen} 
-          options={{ tabBarButton: () => null }}  // Hide from tab bar
-        />
-        <Tab.Screen 
-          name="Konfirmasi" 
-          component={KonfirmasiScreen} 
-          options={{ tabBarButton: () => null }}  // Hide from tab bar
-        />
-      </Tab.Navigator>
-    </NavigationContainer>
+    <TransactionProvider>
+      <NavigationContainer>
+        <Stack.Navigator>
+          <Stack.Screen name="Home" component={TabNavigator} options={{ headerShown: false }} />
+          <Stack.Screen name="Transaksi" component={TransaksiScreen} />
+          <Stack.Screen name="Konfirmasi" component={KonfirmasiScreen} />
+          <Stack.Screen 
+            name="TransactionDetail" 
+            component={TransactionDetail} 
+            options={({ navigation }) => ({
+              title: 'Transaction Detail',
+              headerLeft: () => (
+                <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginLeft: 10 }}>
+                  <Ionicons name="arrow-back" size={24} color="black" />
+                </TouchableOpacity>
+              ),
+              tabBarStyle: { display: 'none' }, // Hide bottom tab navigator
+              headerShown: true, // Show the header
+            })}
+          />
+        </Stack.Navigator>
+      </NavigationContainer>
+    </TransactionProvider>
   );
 }
 

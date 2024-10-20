@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, StyleSheet, TouchableOpacity, Alert } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { View, Text, TextInput, StyleSheet, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import { useNavigation, NavigationProp } from '@react-navigation/native';
 
 type TransaksiScreenProps = {
   route: {
@@ -8,143 +8,209 @@ type TransaksiScreenProps = {
       transactionType: string;
     };
   };
-  navigation: any;
 };
 
-const TransaksiScreen = ({ route, navigation }: TransaksiScreenProps) => {
+const TransaksiScreen = ({ route }: TransaksiScreenProps) => {
   const { transactionType } = route.params || {};
-  const [inputValue, setInputValue] = useState('');
-  const [validationMessage, setValidationMessage] = useState('');
+  const [inputValue, setInputValue] = useState<string>('');
+  const [validationMessage, setValidationMessage] = useState<string>('');
   const [selectedNominal, setSelectedNominal] = useState<number | null>(null);
-  const [isPhoneNumberValid, setIsPhoneNumberValid] = useState(false);
+  const [isInputValueValid, setIsInputValueValid] = useState<boolean>(false);
+  const [operatorName, setOperatorName] = useState<string | null>(null);
+  const navigation = useNavigation<NavigationProp<any>>();
 
-  const handleInputChange = (text) => {
+  type OperatorPrefixes = {
+    [key: string]: string[];
+  };
+
+  const operatorPrefixes: OperatorPrefixes = {
+    Telkomsel: ['0811', '0812', '0813', '0821', '0822', '0823', '0852', '0853', '0851'],
+    Indosat: ['0814', '0815', '0816', '0855', '0856', '0857', '0858'],
+    XL: ['0817', '0818', '0819', '0859', '0877', '0878'],
+    Tri: ['0895', '0896', '0897', '0898', '0899'],
+    Axis: ['0838', '0831', '0832', '0833'],
+    Smart: ['0881', '0882', '0883', '0884', '0885', '0886', '0887', '0888', '0889'],
+    Mobile8: ['0888', '0889'],
+    Ceria_SampoernaTelkom: ['0828'],
+    ByruSatelit: ['0868'],
+    NT3G: ['0838'],
+    LippoTelecom: ['08315'],
+  };
+
+  const handleInputChange = (text: string) => {
     setInputValue(text);
+    validateInputValue(text);
+  };
 
-    if (transactionType === 'Pulsa') {
-      validatePhoneNumber(text);
+  const validateInputValue = (inputValue: string) => {
+    if (transactionType === 'Token Listrik') {
+      if (/^[1-9]\d{0,11}$/.test(inputValue)) {
+        setValidationMessage('Nomor ID PLN valid.');
+        setIsInputValueValid(true);
+      } else {
+        setValidationMessage('Nomor ID PLN tidak valid. Harap masukkan maksimal 12 digit, dimulai dengan angka 1-9.');
+        setIsInputValueValid(false);
+      }
     } else if (transactionType === 'BPJS') {
-      validateBPJS(text);
-    } else if (transactionType === 'Token Listrik') {
-      validatePLN(text);
+      if (/^0\d{12}$/.test(inputValue)) {
+        setValidationMessage('Nomor BPJS valid.');
+        setIsInputValueValid(true);
+      } else {
+        setValidationMessage('Nomor BPJS tidak valid. Harap masukkan 13 digit, dimulai dengan angka 0.');
+        setIsInputValueValid(false);
+      }
+    } else if (transactionType === 'Pulsa') {
+      validatePhoneNumber(inputValue);
     }
   };
 
-  // Validasi nomor telepon
-  const validatePhoneNumber = (phoneNumber) => {
-    const regex = /^(0811|0812|0813|0821|0822|0823|0851|0852|0853|0814|0815|0816|0855|0856|0857|0858|0817|0818|0819|0859|0877|0878|0895|0896|0897|0898|0899|0831|0832|0833|0838|0881|0882|0883|0884|0885|0886|0887|0888|0889|0828|0868|08315)\d{6,9}$/;
-    if (regex.test(phoneNumber)) {
-      setValidationMessage('Nomor telepon valid.');
-      setIsPhoneNumberValid(true);
+  const validatePhoneNumber = (phoneNumber: string) => {
+    const matchedOperator = findOperator(phoneNumber);
+    if (matchedOperator) {
+      setOperatorName(matchedOperator);
+      setValidationMessage(`Nomor telepon valid untuk operator ${matchedOperator}.`);
+      setIsInputValueValid(true);
     } else {
+      setOperatorName(null);
       setValidationMessage('Nomor telepon tidak valid. Harap pastikan nomor Anda sesuai dengan format yang ditentukan.');
-      setIsPhoneNumberValid(false);
+      setIsInputValueValid(false);
     }
   };
 
-  // Validasi nomor BPJS
-  const validateBPJS = (bpjsNumber) => {
-    const regex = /^0\d{12}$/;
-    if (regex.test(bpjsNumber)) {
-      setValidationMessage('Nomor BPJS valid.');
-      setIsPhoneNumberValid(true);
-    } else {
-      setValidationMessage('Nomor BPJS harus berjumlah 13 digit dan dimulai dengan "0".');
-      setIsPhoneNumberValid(false);
+  const findOperator = (phoneNumber: string): string | null => {
+    const prefix = phoneNumber.substring(0, 4);
+    for (const operator in operatorPrefixes) {
+      if (operatorPrefixes[operator].some(opPrefix => phoneNumber.startsWith(opPrefix))) {
+        return operator === 'Ceria_SampoernaTelkom' ? 'Ceria/Sampoerna Telkom' : operator;
+      }
     }
+    return null;
   };
 
-  // Validasi nomor PLN
-  const validatePLN = (plnNumber) => {
-    const regex = /^[1-9]\d{0,11}$/;
-    if (regex.test(plnNumber)) {
-      setValidationMessage('Nomor pelanggan PLN valid.');
-      setIsPhoneNumberValid(true);
-    } else {
-      setValidationMessage('Nomor pelanggan PLN harus berjumlah maksimal 12 digit dan tidak boleh dimulai dengan "0".');
-      setIsPhoneNumberValid(false);
-    }
+  const handleNominalSelect = (nominal: number) => {
+    setSelectedNominal(prevNominal => (prevNominal === nominal ? null : nominal));
   };
 
-  // Fungsi untuk memilih nominal
-  const handleNominalSelect = (nominal) => {
-    if (selectedNominal === nominal) {
-      setSelectedNominal(null); // Jika nominal yang sama ditekan lagi, hapus pilihan
-    } else {
-      setSelectedNominal(nominal); // Set nominal yang dipilih
-    }
-  };
-
-  // Fungsi untuk melanjutkan transaksi dan navigasi ke KonfirmasiScreen
   const handleContinueTransaction = () => {
-    if (selectedNominal && isPhoneNumberValid) {
-      // Navigasi ke KonfirmasiScreen dengan parameter yang diperlukan
+    if (isInputValueValid && selectedNominal) {
       navigation.navigate('Konfirmasi', {
         transactionType,
         inputValue,
         selectedNominal,
+        operatorName,
       });
     } else {
       Alert.alert('Peringatan', 'Silakan masukkan nomor yang valid dan pilih nominal sebelum melanjutkan.');
     }
   };
 
-  // Tombol nominal untuk Pulsa dan PLN
-  const pulsaPLNNominals = [5000, 10000, 15000, 20000, 25000, 30000, 40000, 50000, 75000, 100000];
-
-  // Tombol nominal untuk BPJS
-  const bpjsNominals = Array.from({ length: 20 }, (_, i) => (i + 1) * 50000).slice(0, 20); // 50.000 hingga 1.000.000
+  const pulsaNominals = [5000, 10000, 15000, 20000, 25000, 30000, 40000, 50000, 75000, 100000];
+  const plnNominals = [5000, 10000, 15000, 20000, 25000, 30000, 40000, 50000, 75000, 100000];
+  const bpjsNominals = [50000, 100000, 150000, 200000, 250000, 300000, 350000, 400000, 450000, 500000];
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>{transactionType}</Text>
-      <TextInput
-        style={styles.input}
-        placeholder={`Masukkan ${transactionType}`}
-        keyboardType="numeric"
-        value={inputValue}
-        onChangeText={handleInputChange}
-        maxLength={transactionType === 'BPJS' ? 13 : 12}
-      />
-      {validationMessage ? <Text style={styles.validationMessage}>{validationMessage}</Text> : null}
-
-      {/* Tampilkan tombol nominal berdasarkan tipe transaksi */}
-      <View style={styles.nominalContainer}>
-        {(transactionType === 'Pulsa' || transactionType === 'Token Listrik') &&
-          pulsaPLNNominals.map((nominal) => (
-            <TouchableOpacity
-              key={nominal}
-              style={[
-                styles.nominalButton,
-                selectedNominal === nominal ? styles.selectedButton : null, // Tambahkan style jika terpilih
-                !isPhoneNumberValid && styles.disabledButton,
-              ]}
-              onPress={() => isPhoneNumberValid && handleNominalSelect(nominal)}
-              disabled={!isPhoneNumberValid}
-            >
-              <Text style={styles.nominalButtonText}>Rp{nominal}</Text>
-            </TouchableOpacity>
-          ))
-        }
-        {transactionType === 'BPJS' &&
-          bpjsNominals.map((nominal) => (
-            <TouchableOpacity
-              key={nominal}
-              style={[
-                styles.nominalButton,
-                selectedNominal === nominal ? styles.selectedButton : null, // Tambahkan style jika terpilih
-                !isPhoneNumberValid && styles.disabledButton,
-              ]}
-              onPress={() => isPhoneNumberValid && handleNominalSelect(nominal)}
-              disabled={!isPhoneNumberValid}
-            >
-              <Text style={styles.nominalButtonText}>Rp{nominal}</Text>
-            </TouchableOpacity>
-          ))
-        }
+      <View style={styles.inputContainer}>
+        <Text style={styles.title}>{transactionType}</Text>
+        <TextInput
+          style={styles.input}
+          placeholder={`Masukkan nomor ${transactionType === 'Pulsa' ? 'telepon' : transactionType === 'Token Listrik' ? 'ID PLN' : 'BPJS'}`}
+          keyboardType="numeric"
+          value={inputValue}
+          onChangeText={handleInputChange}
+          maxLength={transactionType === 'BPJS' ? 13 : transactionType === 'Token Listrik' ? 12 : 12}
+        />
+        {validationMessage ? (
+          <Text
+            style={[
+              styles.validationMessage,
+              isInputValueValid ? styles.validText : styles.invalidText,
+            ]}
+          >
+            {validationMessage}
+          </Text>
+        ) : null}
       </View>
 
-      {/* Tombol Lanjutkan Transaksi */}
+      {/* Render nominal selection based on transaction type */}
+      {transactionType === 'Pulsa' && (
+        <ScrollView contentContainerStyle={styles.nominalContainer}>
+          {pulsaNominals.map(nominal => (
+            <TouchableOpacity
+              key={nominal}
+              style={[
+                styles.nominalButton,
+                selectedNominal === nominal ? styles.selectedButton : null,
+                !isInputValueValid && styles.disabledButton,
+              ]}
+              onPress={() => isInputValueValid && handleNominalSelect(nominal)}
+              disabled={!isInputValueValid}
+            >
+              <View>
+                <Text style={[
+                  styles.nominalButtonText,
+                  selectedNominal === nominal ? styles.selectedText : null,
+                  !isInputValueValid ? styles.disabledText : null,
+                ]}>Rp{nominal}</Text>
+                <Text style={styles.totalText}>Total: Rp{nominal + 1500}</Text>
+              </View>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      )}
+
+      {transactionType === 'BPJS' && (
+        <ScrollView contentContainerStyle={styles.nominalContainer}>
+          {bpjsNominals.map(nominal => (
+            <TouchableOpacity
+              key={nominal}
+              style={[
+                styles.nominalButton,
+                selectedNominal === nominal ? styles.selectedButton : null,
+                !isInputValueValid && styles.disabledButton,
+              ]}
+              onPress={() => isInputValueValid && handleNominalSelect(nominal)}
+              disabled={!isInputValueValid}
+            >
+              <View>
+                <Text style={[
+                  styles.nominalButtonText,
+                  selectedNominal === nominal ? styles.selectedText : null,
+                  !isInputValueValid ? styles.disabledText : null,
+                ]}>Rp{nominal}</Text>
+                <Text style={styles.totalText}>Total: Rp{nominal + 1500}</Text>
+              </View>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      )}
+
+      {transactionType === 'Token Listrik' && (
+        <ScrollView contentContainerStyle={styles.nominalContainer}>
+          {plnNominals.map(nominal => (
+            <TouchableOpacity
+              key={nominal}
+              style={[
+                styles.nominalButton,
+                selectedNominal === nominal ? styles.selectedButton : null,
+                !isInputValueValid && styles.disabledButton,
+              ]}
+              onPress={() => isInputValueValid && handleNominalSelect(nominal)}
+              disabled={!isInputValueValid}
+            >
+              <View>
+                <Text style={[
+                  styles.nominalButtonText,
+                  selectedNominal === nominal ? styles.selectedText : null,
+                  !isInputValueValid ? styles.disabledText : null,
+                ]}>Rp{nominal}</Text>
+                <Text style={styles.totalText}>Total: Rp{nominal + 1500}</Text>
+              </View>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      )}
+
       {selectedNominal !== null && (
         <TouchableOpacity style={styles.continueButton} onPress={handleContinueTransaction}>
           <Text style={styles.continueButtonText}>Lanjutkan Transaksi</Text>
@@ -157,9 +223,11 @@ const TransaksiScreen = ({ route, navigation }: TransaksiScreenProps) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
     padding: 16,
+    backgroundColor: '#fff',
+  },
+  inputContainer: {
+    flexShrink: 0,
   },
   title: {
     fontSize: 20,
@@ -176,32 +244,49 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   validationMessage: {
-    color: 'red',
     marginBottom: 20,
     fontSize: 14,
   },
+  validText: {
+    color: 'green',
+  },
+  invalidText: {
+    color: 'red',
+  },
   nominalContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexGrow: 1,
     justifyContent: 'center',
-    marginTop: 20,
-    width: '100%',
+    alignItems: 'center',
   },
   nominalButton: {
-    backgroundColor: 'blue',
+    borderWidth: 1,
+    borderColor: 'blue',
     borderRadius: 5,
-    padding: 10,
-    margin: 5,
+    padding: 15,
+    marginVertical: 10,
+    width: '100%',
   },
   selectedButton: {
-    backgroundColor: 'green', // Warna tombol saat terpilih
+    borderColor: 'green',
   },
   disabledButton: {
-    backgroundColor: 'gray', // Ubah warna tombol jika tidak aktif
+    borderColor: 'gray',
   },
   nominalButtonText: {
-    color: 'white',
     fontSize: 16,
+    textAlign: 'left',
+    color: 'blue',
+  },
+  totalText: {
+    fontSize: 14,
+    textAlign: 'left',
+    color: 'gray',
+  },
+  selectedText: {
+    color: 'green',
+  },
+  disabledText: {
+    color: 'gray',
   },
   continueButton: {
     backgroundColor: 'green',
@@ -212,8 +297,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   continueButtonText: {
-    color: 'white',
+    color: '#fff',
     fontSize: 16,
+    fontWeight: 'bold',
   },
 });
 
